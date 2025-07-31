@@ -9,7 +9,7 @@
 #include "buffer.h"
 
 void myprintf(const char* pszFormat, ...);
-
+size_t my_strlen(const char* s);
 
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
 DWORD  HashStringDjb2a_Ascii(IN PCHAR string) {
@@ -356,7 +356,7 @@ VOID RtlInitUnicodeString(IN OUT PUNICODE_STRING DestinationString, IN PCWSTR So
 
     if (SourceString)
     {
-        DestSize = wcslen(SourceString) * sizeof(WCHAR);
+        DestSize = my_wcslen(SourceString) * sizeof(WCHAR);
         DestinationString->Length = (USHORT)DestSize;
         DestinationString->MaximumLength = (USHORT)DestSize + sizeof(WCHAR);
     }

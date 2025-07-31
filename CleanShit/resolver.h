@@ -18,7 +18,19 @@ char* logs = "[2024-01-16 14:32:10] System initialized.\n"
 "[2024-01-16 14:34:22] No updates found.\n";
 
 
-
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+size_t my_strlen(const char* s) {
+    size_t i = 0;
+    while (s[i]) ++i;
+    return i;
+}
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
+size_t my_wcslen(const wchar_t* s) {
+    size_t i = 0;
+    while (s[i]) ++i;
+    return i;
+}
+// -------------------------------- //// -------------------------------- //// -------------------------------- //
 #define CONTAINING_RECORD(address, type, field) \
     ((type *)((PCHAR)(address) - (ULONG_PTR)(&((type *)0)->field)))
 
@@ -164,7 +176,7 @@ void myprintf(const char* pszFormat, ...) {
     wvsprintfA(buf, pszFormat, argList);
     va_end(argList);
     DWORD done;
-    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, strlen(buf), &done, NULL);
+    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), buf, my_strlen(buf), &done, NULL);
 }
 
 // -------------------------------- //// -------------------------------- //// -------------------------------- //
